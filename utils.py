@@ -6,7 +6,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.distributions.categorical import Categorical
-
+import matplotlib.pyplot as plt
 
 torch.autograd.set_detect_anomaly(True)
 

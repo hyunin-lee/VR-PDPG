@@ -5,14 +5,15 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
+import matplotlib.pyplot as plt
 from utils import *
 
+from torch.utils.tensorboard import SummaryWriter
 
+writer = SummaryWriter('./runs/test')
 torch.autograd.set_detect_anomaly(True)
 
 import gym
-
-
 import numpy as np
 
 def parse_args():
@@ -20,7 +21,7 @@ def parse_args():
     parser.add_argument("--max_episode", type=int, default=1000, help = "iteration number")
     parser.add_argument("--max_step", type=int, default = 1000, help = "trajectory length")
     parser.add_argument("--gamma", type=float, default=0.99, help="gamma")
-    parser.add_argument("--init_lr_theta", type=float, default=0.01, help="initial learning rate for theta")
+    parser.add_argument("--init_lr_theta", type=float, default=0.001, help="initial learning rate for theta")
     parser.add_argument("--init_lr_mu", type=float, default=0.001, help="initial learning rate for mu")
     parser.add_argument("--alpha", type=float, default=0.01, help="alpha")
     parser.add_argument("--C0_mu", type=float, default=100, help="alpha")
@@ -52,6 +53,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
     ## define variables
     target_occupancy_measure = get_target_occupancy_measure(num_states,num_actions,gamma)
 
+    final_step_list = []
 
 
 
@@ -138,7 +140,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             occupancy_measure = get_occupancy_measure(obs_buffer, action_buffer, episode, final_step, num_states,
                                                       num_actions, gamma)
             #w = calculate_w(obs_buffer,action_buffer,episode,previous_agent,agent,num_states)
-            w=0.9
+            w= 0.0
 
             u = occupancy_measure * (1- w)
             lambda_ = alpha * occupancy_measure + (1-alpha) * (previous_lambda + u)
@@ -188,11 +190,16 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             previous_d_g = d_g
 
         set_flat_params_to(previous_agent, get_flat_params_from(agent))
-        print("reward : " + str(torch.sum(reward_buffer[episode]).item()))
-        print("final step : " + str(final_step))
 
+        writer.add_scalar("return", torch.sum(reward_buffer[episode]).item(), episode)
+        writer.add_scalar("final step", final_step, episode)
+        writer.add_scalar("constraint violation", torch.sum(occupancy_measure - target_occupancy_measure).item(), episode)
+        # print("reward : " + str(torch.sum(reward_buffer[episode]).item()))
+        # print("final step : " + str(final_step))
+        # print("constraint violation : " + str(torch.sum(occupancy_measure - target_occupancy_measure).item()))
+        writer.flush()
 
-
+    writer.close()
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -215,5 +222,7 @@ if __name__ == '__main__':
     agent = Agent(num_states, num_actions)
     previous_agent = Agent(num_states,num_actions)
     agent_reference = Agent(num_states, num_actions)
+
+
     VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions)
 
