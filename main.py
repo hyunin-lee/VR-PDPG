@@ -7,10 +7,12 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 from utils import *
-
+from tqdm import tqdm
+import datetime
 from torch.utils.tensorboard import SummaryWriter
 
-writer = SummaryWriter('./runs/test')
+folder_name = 'test-{date:%Y_%m_%d_%H:%M:%S}'.format( date=datetime.datetime.now())
+writer = SummaryWriter('./runs/' + folder_name)
 torch.autograd.set_detect_anomaly(True)
 
 import gym
@@ -23,7 +25,8 @@ def parse_args():
     parser.add_argument("--gamma", type=float, default=0.99, help="gamma")
     parser.add_argument("--init_lr_theta", type=float, default=0.001, help="initial learning rate for theta")
     parser.add_argument("--init_lr_mu", type=float, default=0.001, help="initial learning rate for mu")
-    parser.add_argument("--alpha", type=float, default=0.01, help="alpha")
+    parser.add_argument("--alpha", type=float, default=0.1, help="alpha")
+    parser.add_argument("--init_mu", type=float, default=0.1, help="initial mu")
     parser.add_argument("--C0_mu", type=float, default=100, help="alpha")
     args = parser.parse_args()
     return args
@@ -36,15 +39,17 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
     init_lr_theta = args.init_lr_theta
     init_lr_mu = args.init_lr_mu
     alpha = args.alpha
+    init_mu = args.init_mu
+    C0_mu = args.C0_mu
 
     # define optimizer.zero_grad()
     optimizer_agent = torch.optim.Adam(agent.parameters(), lr=init_lr_theta)
     optimizer_agent_reference = torch.optim.Adam(agent_reference.parameters(), lr=init_lr_theta)
     optimizer_previous_agent = torch.optim.Adam(previous_agent.parameters(), lr=init_lr_theta)
 
-    # init mu_0
+    # init mu
     with torch.no_grad():
-        mu = torch.tensor([0.1])
+        mu = torch.tensor([init_mu])
 
     obs_buffer = torch.zeros(max_episode,max_step)
     action_buffer = torch.zeros(max_episode,max_step)
@@ -54,12 +59,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
     ## define variables
     target_occupancy_measure = get_target_occupancy_measure(num_states,num_actions,gamma)
 
-    final_step_list = []
-
-
-
-    for episode in range(max_episode) :
-        print("episode : " + str(episode))
+    for episode in tqdm(range(max_episode)) :
+        # print("episode : " + str(episode))
         ## make agent refrence and agent same network before starting episode.
         set_flat_params_to(agent_reference, get_flat_params_from(agent))
 
@@ -113,6 +114,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 
             ## define some vairbales
             previous_lambda = occupancy_measure
+            previous_previous_r_f = r_f
+            previous_previous_r_g = r_g
             previous_r_f = r_f
             previous_r_g = r_g
             previous_d_f = d_f
@@ -152,22 +155,28 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 
             # line 12
             ## compute d_f ##
-            d_tau_t_theta_t_r_f_t_1 = get_gradient_input_reward(previous_r_f,gamma,obs_buffer,action_buffer,agent_reference,optimizer_agent_reference,episode,num_states)
-            # below code could be problemetic please check #
-            v_f = d_tau_t_theta_t_r_f_t_1 - w * get_gradient_input_reward(previous_r_f,gamma,obs_buffer,action_buffer,previous_agent,optimizer_previous_agent,episode,num_states,requires_grad=False)
-            ##################################################
-            d_f = alpha * d_tau_t_theta_t_r_f_t_1 + (1- alpha) * (previous_d_f + v_f)
+            d_tau_t__theta_t__r_f_t_1 = get_gradient_input_reward(previous_r_f,gamma,obs_buffer,action_buffer,
+                                                                agent_reference,optimizer_agent_reference,episode,
+                                                                  num_states)
+            d_tau_t__theta_t_1__r_f_t_2 = get_gradient_input_reward(previous_previous_r_f,gamma,obs_buffer,action_buffer,
+                                                                  previous_agent,optimizer_previous_agent,episode,
+                                                                    num_states,requires_grad=False)
+
+            v_f = d_tau_t__theta_t__r_f_t_1 - w * d_tau_t__theta_t_1__r_f_t_2
+            d_f = alpha * d_tau_t__theta_t__r_f_t_1 + (1- alpha) * (previous_d_f + v_f)
 
             ## compute d_g ##
-            d_tau_t_theta_t_r_g_t_1 = get_gradient_input_reward(previous_r_g, gamma, obs_buffer, action_buffer,
-                                                                agent_reference, optimizer_agent_reference, episode,
+            d_tau_t_theta_t__r_g_t_1 = get_gradient_input_reward(previous_r_g, gamma, obs_buffer, action_buffer,
+                                                                agent_reference, optimizer_agent_reference, episode-1,
                                                                 num_states)
-            # below code could be problemetic please check #
-            v_g = d_tau_t_theta_t_r_g_t_1 - w * get_gradient_input_reward(previous_r_g, gamma, obs_buffer,
+
+            d_tau_t__theta_t_1__r_g_t_2 = get_gradient_input_reward(previous_previous_r_g, gamma, obs_buffer,
                                                                           action_buffer, previous_agent,
                                                                           optimizer_previous_agent, episode, num_states,requires_grad=False)
+            # below code could be problemetic please check #
+            v_g = d_tau_t_theta_t__r_g_t_1 - w * d_tau_t__theta_t_1__r_g_t_2
             ##################################################
-            d_g = alpha * d_tau_t_theta_t_r_g_t_1 + (1 - alpha) * (previous_d_g + v_g)
+            d_g = alpha * d_tau_t_theta_t__r_g_t_1 + (1 - alpha) * (previous_d_g + v_g)
 
             # line 13
             d_L = d_f + mu * d_g
@@ -181,13 +190,17 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 
             ## line 14
             mu = mu - init_lr_mu * 0.5 * torch.norm(occupancy_measure_gap) ** 2
-            mu = torch.clamp(mu, min=0, max=args.C0_mu)
+            mu = torch.clamp(mu, min=0, max=C0_mu)
+
             ## define some vairbales
             previous_lambda = lambda_
+            previous_previous_r_f = previous_r_f
+            previous_previous_r_g = previous_r_g
             previous_r_f = r_f
             previous_r_g = r_g
             previous_d_f = d_f
             previous_d_g = d_g
+
 
         set_flat_params_to(previous_agent, get_flat_params_from(agent))
 
