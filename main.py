@@ -59,7 +59,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
     target_occupancy_measure = get_target_occupancy_measure(num_states,num_actions,gamma)
 
     for episode in tqdm(range(max_episode)) :
-        # print("episode : " + str(episode))
+        # make alpha descrease as $1/t$
+        # alpha = alpha * 1/(episode+1)
         ## make agent refrence and agent same network before starting episode.
         set_flat_params_to(agent_reference, get_flat_params_from(agent))
 
