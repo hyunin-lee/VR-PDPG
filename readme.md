@@ -12,3 +12,7 @@ conda env create -f environment.yml
 ```python
 python main.py
 ```
+3. to run multiple hyperparameters, run run.sh 
+```python
+sh run.sh
+```

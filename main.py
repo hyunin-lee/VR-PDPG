@@ -11,8 +11,7 @@ from tqdm import tqdm
 import datetime
 from torch.utils.tensorboard import SummaryWriter
 
-folder_name = 'test-{date:%Y_%m_%d_%H:%M:%S}'.format( date=datetime.datetime.now())
-writer = SummaryWriter('./runs/' + folder_name)
+
 torch.autograd.set_detect_anomaly(True)
 
 import gym
@@ -20,7 +19,7 @@ import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max_episode", type=int, default=1000, help = "iteration number")
+    parser.add_argument("--max_episode", type=int, default=10, help = "iteration number")
     parser.add_argument("--max_step", type=int, default = 1000, help = "trajectory length")
     parser.add_argument("--gamma", type=float, default=0.99, help="gamma")
     parser.add_argument("--init_lr_theta", type=float, default=0.001, help="initial learning rate for theta")
@@ -32,7 +31,7 @@ def parse_args():
     return args
 
 
-def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions) :
+def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer) :
     max_episode = args.max_episode
     max_step = args.max_step
     gamma = args.gamma
@@ -212,8 +211,6 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
         # print("constraint violation : " + str(torch.sum(occupancy_measure - target_occupancy_measure).item()))
         writer.flush()
 
-    writer.close()
-
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
 
@@ -236,5 +233,11 @@ if __name__ == '__main__':
     previous_agent = Agent(num_states,num_actions)
     agent_reference = Agent(num_states, num_actions)
 
-    VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions)
+    #folder_name = 'test-{date:%Y_%m_%d_%H:%M:%S}'.format(date=datetime.datetime.now())
+    folder_name = "maxEp__" + str(args.max_episode) + '__maxS__'+str(args.max_step) + '__gm__' + str(args.gamma) + \
+                   '__lrTh0__' + str(args.init_lr_theta) + '__lrMu0__' + str(args.init_lr_mu) + '__a__' + str(args.alpha) + \
+                  '__mu0__' + str(args.init_mu)
+    writer = SummaryWriter('./runs/' + folder_name)
+    VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer)
+    writer.close()
 
