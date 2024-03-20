@@ -156,6 +156,7 @@ def calculate_w(obs_buffer, action_buffer, episode,previous_policy, policy, num_
     epsilon = 1e-8
 
     ratio = selected_previous_logprob / (selected_logprob +epsilon)
+    ratio = ratio.detach()
     return torch.prod(ratio)
     # log_ratio = torch.log(selected_previous_logprob + epsilon) - torch.log(selected_logprob + epsilon)
     # return torch.exp(torch.sum(log_ratio))

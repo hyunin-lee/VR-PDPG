@@ -44,7 +44,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 
     # init mu_0
     with torch.no_grad():
-        mu = torch.tensor([0.01])
+        mu = torch.tensor([0.1])
+
     obs_buffer = torch.zeros(max_episode,max_step)
     action_buffer = torch.zeros(max_episode,max_step)
     reward_buffer = torch.zeros(max_episode,max_step)
@@ -139,8 +140,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             # line 10
             occupancy_measure = get_occupancy_measure(obs_buffer, action_buffer, episode, final_step, num_states,
                                                       num_actions, gamma)
-            #w = calculate_w(obs_buffer,action_buffer,episode,previous_agent,agent,num_states)
-            w= 0.0
+            w = calculate_w(obs_buffer,action_buffer,episode,previous_agent,agent,num_states)
 
             u = occupancy_measure * (1- w)
             lambda_ = alpha * occupancy_measure + (1-alpha) * (previous_lambda + u)
@@ -222,7 +222,6 @@ if __name__ == '__main__':
     agent = Agent(num_states, num_actions)
     previous_agent = Agent(num_states,num_actions)
     agent_reference = Agent(num_states, num_actions)
-
 
     VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions)
 
