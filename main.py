@@ -106,10 +106,10 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             set_flat_grads_to(agent,d_L)
             for g in optimizer_agent.param_groups:
                 g['lr'] = lr_theta
-            optimizer_agent.step()
+            optimizer_agent.step() # gradient step
 
             ## line 7
-            mu = mu - init_lr_mu * 0.5 * torch.norm(occupancy_measure_gap)**2
+            mu = mu + init_lr_mu * (0.5 * torch.norm(occupancy_measure_gap) ** 2 - 10) #g(\lambda)
             mu = torch.clamp(mu, min=0, max=args.C0_mu)
 
             ## define some vairbales
@@ -189,7 +189,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             optimizer_agent.step()
 
             ## line 14
-            mu = mu - init_lr_mu * 0.5 * torch.norm(occupancy_measure_gap) ** 2
+            mu = mu + init_lr_mu * (0.5 * torch.norm(occupancy_measure_gap) ** 2 - 10) #g(\lambda)
             mu = torch.clamp(mu, min=0, max=C0_mu)
 
             ## define some vairbales

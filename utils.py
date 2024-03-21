@@ -53,7 +53,9 @@ def get_gradient_input_reward(reward,gamma,obs_buffer,action_buffer,agent_,optim
     else :
         _, batch_logprob = agent_.get_action(batch_input)
         selected_logprob = batch_logprob.gather(1, action_buffer[episode, :].long().view(-1, 1))
-    loss = -torch.sum(selected_logprob * scores)
+    # this could be problem!! #
+    loss = - torch.sum(selected_logprob * scores)
+    ##########################
     loss.backward()
     d = get_flat_grads_from(agent_)
 

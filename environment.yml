@@ -11,6 +11,8 @@ dependencies:
   - attrs=23.1.0=py38hca03da5_0
   - blas=1.0=openblas
   - blinker=1.6.2=py38hca03da5_0
+  - brotli=1.0.9=h1a28f6b_7
+  - brotli-bin=1.0.9=h1a28f6b_7
   - brotli-python=1.0.9=py38hc377ac9_7
   - c-ares=1.19.1=h80987f9_0
   - ca-certificates=2024.3.11=hca03da5_0
@@ -19,8 +21,11 @@ dependencies:
   - cffi=1.16.0=py38h80987f9_0
   - charset-normalizer=2.0.4=pyhd3eb1b0_0
   - click=8.1.7=py38hca03da5_0
+  - contourpy=1.0.5=py38h525c30c_0
   - cryptography=42.0.5=py38hd4332d6_0
+  - cycler=0.11.0=pyhd3eb1b0_0
   - filelock=3.13.1=py38hca03da5_0
+  - fonttools=4.25.0=pyhd3eb1b0_0
   - freetype=2.12.1=h1192e45_0
   - frozenlist=1.4.0=py38h80987f9_0
   - gmp=6.2.1=hc377ac9_3
@@ -31,10 +36,15 @@ dependencies:
   - grpcio=1.48.2=py38hc60591f_4
   - gtest=1.14.0=h48ca7d4_0
   - idna=3.4=py38hca03da5_0
+  - importlib_resources=6.1.1=py38hca03da5_1
   - jinja2=3.1.3=py38hca03da5_0
   - jpeg=9e=h80987f9_1
+  - kiwisolver=1.4.4=py38h313beb8_0
   - lcms2=2.12=hba8e193_0
   - lerc=3.0=hc377ac9_0
+  - libbrotlicommon=1.0.9=h1a28f6b_7
+  - libbrotlidec=1.0.9=h1a28f6b_7
+  - libbrotlienc=1.0.9=h1a28f6b_7
   - libcxx=14.0.6=h848a8c0_0
   - libdeflate=1.17=h80987f9_1
   - libffi=3.4.4=hca03da5_0
@@ -50,10 +60,13 @@ dependencies:
   - lz4-c=1.9.4=h313beb8_0
   - markdown=3.4.1=py38hca03da5_0
   - markupsafe=2.1.3=py38h80987f9_0
+  - matplotlib=3.7.2=py38hca03da5_0
+  - matplotlib-base=3.7.2=py38h46d7db6_0
   - mpc=1.1.0=h8c48613_1
   - mpfr=4.0.2=h695f6f0_1
   - mpmath=1.3.0=py38hca03da5_0
   - multidict=6.0.4=py38h80987f9_0
+  - munkres=1.1.4=py_0
   - ncurses=6.4=h313beb8_0
   - networkx=3.1=py38hca03da5_0
   - numpy=1.24.3=py38h1398885_0
@@ -61,6 +74,7 @@ dependencies:
   - oauthlib=3.2.2=py38hca03da5_0
   - openjpeg=2.3.0=h7a6adac_2
   - openssl=3.0.13=h1a28f6b_0
+  - packaging=23.2=py38hca03da5_0
   - pillow=10.2.0=py38h80987f9_0
   - pip=23.3.1=py38hca03da5_0
   - pyasn1=0.4.8=pyhd3eb1b0_0
@@ -68,8 +82,10 @@ dependencies:
   - pycparser=2.21=pyhd3eb1b0_0
   - pyjwt=2.4.0=py38hca03da5_0
   - pyopenssl=24.0.0=py38hca03da5_0
+  - pyparsing=3.0.9=py38hca03da5_0
   - pysocks=1.7.1=py38hca03da5_0
   - python=3.8.18=hb885b13_0
+  - python-dateutil=2.8.2=pyhd3eb1b0_0
   - pytorch=2.2.1=py3.8_0
   - pytz=2023.3.post1=py38hca03da5_0
   - pyyaml=6.0.1=py38h80987f9_0
@@ -88,6 +104,7 @@ dependencies:
   - tk=8.6.12=hb8d0fd4_0
   - torchaudio=2.2.1=py38_cpu
   - torchvision=0.17.1=py38_cpu
+  - tornado=6.3.3=py38h80987f9_0
   - tqdm=4.65.0=py38h86d0a89_0
   - typing_extensions=4.9.0=py38hca03da5_1
   - urllib3=2.1.0=py38hca03da5_1
@@ -121,3 +138,4 @@ dependencies:
       - tinyscaler==1.2.7
       - wandb==0.16.4
       - zipp==3.18.1
+prefix: /Users/hyunin/anaconda3/envs/py38_donghao
