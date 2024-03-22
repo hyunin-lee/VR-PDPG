@@ -19,7 +19,7 @@ import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max_episode", type=int, default=10, help = "iteration number")
+    parser.add_argument("--max_episode", type=int, default=1000, help = "iteration number")
     parser.add_argument("--max_step", type=int, default = 1000, help = "trajectory length")
     parser.add_argument("--gamma", type=float, default=0.99, help="gamma")
     parser.add_argument("--init_lr_theta", type=float, default=0.001, help="initial learning rate for theta")
@@ -100,12 +100,10 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 
             ## line 6
             d_L = d_f + mu * d_g
-            lr_theta = init_lr_theta / torch.norm(d_L)
+            d_L = d_L / torch.norm(d_L)
 
             optimizer_agent.zero_grad()
             set_flat_grads_to(agent,d_L)
-            for g in optimizer_agent.param_groups:
-                g['lr'] = lr_theta
             optimizer_agent.step() # gradient step
 
             ## line 7
@@ -180,12 +178,10 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 
             # line 13
             d_L = d_f + mu * d_g
-            lr_theta = init_lr_theta / torch.norm(d_L)
+            d_L = d_L / torch.norm(d_L)
 
             optimizer_agent.zero_grad()
             set_flat_grads_to(agent, d_L)
-            for g in optimizer_agent.param_groups:
-                g['lr'] = lr_theta
             optimizer_agent.step()
 
             ## line 14

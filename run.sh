@@ -1,7 +1,7 @@
 for init_lr_theta in 0.001 0.004 0.007 0.01 0.04 0.07; do
   for init_lr_mu in 0.001 0.004 0.007 0.01 0.04 0.07; do
     for alpha in 0.001 0.004 0.007 0.01 0.04 0.07 ;do
-      for init_mu in 1.0 4.0 7.0;do
+      for init_mu in 10 30 50;do
         echo $init_lr_theta
         echo $init_lr_mu
         echo $alpha
