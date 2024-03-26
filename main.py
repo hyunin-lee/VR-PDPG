@@ -19,14 +19,15 @@ import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max_episode", type=int, default=10, help = "iteration number")
+    parser.add_argument("--max_episode", type=int, default=1000, help = "iteration number")
     parser.add_argument("--max_step", type=int, default = 1000, help = "trajectory length")
-    parser.add_argument("--gamma", type=float, default=0.99, help="gamma")
+    parser.add_argument("--gamma", type=float, default=0.85, help="gamma")
     parser.add_argument("--init_lr_theta", type=float, default=0.001, help="initial learning rate for theta")
     parser.add_argument("--init_lr_mu", type=float, default=0.001, help="initial learning rate for mu")
     parser.add_argument("--alpha", type=float, default=0.1, help="alpha")
-    parser.add_argument("--init_mu", type=float, default=0.1, help="initial mu")
-    parser.add_argument("--C0_mu", type=float, default=100, help="alpha")
+    parser.add_argument("--init_mu", type=float, default=2, help="initial mu")
+    parser.add_argument("--C0_mu", type=float, default=10, help="alpha")
+    parser.add_argument("--d_0", type=float, default=2, help="violance allowance")
     args = parser.parse_args()
     return args
 
@@ -40,6 +41,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
     alpha = args.alpha
     init_mu = args.init_mu
     C0_mu = args.C0_mu
+    d_0 = args.d_0
 
     # define optimizer.zero_grad()
     optimizer_agent = torch.optim.Adam(agent.parameters(), lr=init_lr_theta)
@@ -89,7 +91,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             # line 4
             r_f = reward_buffer[episode]
             occupancy_measure_gap = occupancy_measure - target_occupancy_measure
-            r_g = compress_reward(obs_buffer[episode,:],action_buffer[episode,:],num_actions,occupancy_measure_gap)
+            r_g = - compress_reward(obs_buffer[episode,:],action_buffer[episode,:],num_actions,occupancy_measure_gap) #donghao
 
             # line 5
             ## compute r_f ##
@@ -109,7 +111,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             optimizer_agent.step() # gradient step
 
             ## line 7
-            mu = mu + init_lr_mu * (0.5 * torch.norm(occupancy_measure_gap) ** 2 - 20) #g(\lambda)
+            mu = mu + init_lr_mu * (0.5 * torch.norm(occupancy_measure_gap) ** 2 - d_0) #g(\lambda)
             mu = torch.clamp(mu, min=0, max=args.C0_mu)
 
             ## define some vairbales
@@ -151,7 +153,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             # line 11
             r_f = reward_buffer[episode]
             occupancy_measure_gap = lambda_ - target_occupancy_measure
-            r_g = compress_reward(obs_buffer[episode,:],action_buffer[episode,:],num_actions,occupancy_measure_gap)
+            r_g = - compress_reward(obs_buffer[episode,:],action_buffer[episode,:],num_actions,occupancy_measure_gap) #donghao
 
             # line 12
             ## compute d_f ##
@@ -189,7 +191,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             optimizer_agent.step()
 
             ## line 14
-            mu = mu + init_lr_mu * (0.5 * torch.norm(occupancy_measure_gap) ** 2 - 20) #g(\lambda)
+            mu = mu + init_lr_mu * (0.5 * torch.norm(occupancy_measure_gap) ** 2 - d_0) #g(\lambda)
             mu = torch.clamp(mu, min=0, max=C0_mu)
 
             ## define some vairbales
@@ -207,6 +209,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
         writer.add_scalar("return", torch.sum(reward_buffer[episode]).item(), episode)
         writer.add_scalar("final step", final_step, episode)
         writer.add_scalar("constraint violation", torch.sum(occupancy_measure - target_occupancy_measure).item(), episode)
+        print(torch.sum(occupancy_measure - target_occupancy_measure).item())
         # print("reward : " + str(torch.sum(reward_buffer[episode]).item()))
         # print("final step : " + str(final_step))
         # print("constraint violation : " + str(torch.sum(occupancy_measure - target_occupancy_measure).item()))

@@ -37,25 +37,23 @@ class Agent(nn.Module):
 
         if action is None:
             action = probs.sample()
-        log_probs = probs.log_prob(action)
-        if return_prob:
-            return action, torch.log(probs.probs)
-        else:
-            return action, torch.log(probs.probs)
+        # log_probs = probs.log_prob(action)
+
+        return action, torch.log(probs.probs)
 
 def get_gradient_input_reward(reward,gamma,obs_buffer,action_buffer,agent_,optimizer_,episode,num_states,requires_grad=True):
     optimizer_.zero_grad()
-    scores = calculate_scores(reward, gamma)
+    scores = calculate_scores(reward, gamma) # computes f(h) = \sum_{k=h}^{H-1} \gamma^k r(s_k,a_k)
+    # scores is a $H$ length - vector with [f(0),f(1),...,f(H-1)]
     batch_input = F.one_hot(obs_buffer[episode, :].type(torch.long), num_classes=num_states).type(torch.float)
     if requires_grad :
         _, batch_logprob = agent_.get_action(Variable(batch_input))
-        selected_logprob = batch_logprob.gather(1, Variable(action_buffer[episode, :].long().view(-1, 1)))
+        selected_logprob = batch_logprob.gather(1, Variable(action_buffer[episode, :].long().view(-1, 1))) # log \pi(a | s)
+        # selected_logprob is $H$ length vector with [log pi(a0|s0), log pi (a1|s1), .., log pi (a_{h-1}|s_{h-1}}]
     else :
         _, batch_logprob = agent_.get_action(batch_input)
         selected_logprob = batch_logprob.gather(1, action_buffer[episode, :].long().view(-1, 1))
-    # this could be problem!! #
     loss = - torch.sum(selected_logprob * scores)
-    ##########################
     loss.backward()
     d = get_flat_grads_from(agent_)
 
@@ -155,10 +153,11 @@ def calculate_w(obs_buffer, action_buffer, episode,previous_policy, policy, num_
     selected_previous_logprob = previous_logprob.gather(1, action_buffer[episode, :].long().view(-1, 1))
     selected_logprob = current_logprob.gather(1, action_buffer[episode, :].long().view(-1, 1))
 
+    selected_previous_prob = torch.exp(selected_previous_logprob)
+    selected_prob = torch.exp(selected_logprob)
     epsilon = 1e-8
 
-    ratio = selected_previous_logprob / (selected_logprob +epsilon)
+    #donghao : nice catch! #
+    ratio = selected_previous_prob / (selected_prob + epsilon)
     ratio = ratio.detach()
     return torch.prod(ratio)
-    # log_ratio = torch.log(selected_previous_logprob + epsilon) - torch.log(selected_logprob + epsilon)
-    # return torch.exp(torch.sum(log_ratio))
