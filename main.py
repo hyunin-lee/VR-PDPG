@@ -20,12 +20,12 @@ import numpy as np
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--max_episode", type=int, default=1000, help = "iteration number")
-    parser.add_argument("--max_step", type=int, default = 1000, help = "trajectory length")
-    parser.add_argument("--gamma", type=float, default=0.85, help="gamma")
+    parser.add_argument("--max_step", type=int, default = 50, help = "trajectory length")
+    parser.add_argument("--gamma", type=float, default=0.9, help="gamma")
     parser.add_argument("--init_lr_theta", type=float, default=0.001, help="initial learning rate for theta")
     parser.add_argument("--init_lr_mu", type=float, default=0.001, help="initial learning rate for mu")
-    parser.add_argument("--alpha", type=float, default=0.1, help="alpha")
-    parser.add_argument("--init_mu", type=float, default=2, help="initial mu")
+    parser.add_argument("--alpha", type=float, default=0.001, help="alpha")
+    parser.add_argument("--init_mu", type=float, default=1, help="initial mu")
     parser.add_argument("--C0_mu", type=float, default=10, help="alpha")
     parser.add_argument("--d_0", type=float, default=2, help="violance allowance")
     args = parser.parse_args()
@@ -76,6 +76,13 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
                     action, _ = agent.get_action(obs_input)
                     action_input = action.item()
                     next_obs, reward, termimate, _, infos = env.step(action_input)
+                    ## change reward ##
+                    if reward >0 :
+                        reward = 100
+                    else :
+                        reward = - 0.2
+                    ####################
+
                     ## save observation, rewards
                     obs_buffer[episode, step] = obs
                     action_buffer[episode,step] = action
@@ -208,8 +215,9 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 
         writer.add_scalar("return", torch.sum(reward_buffer[episode]).item(), episode)
         writer.add_scalar("final step", final_step, episode)
-        writer.add_scalar("constraint violation", torch.sum(occupancy_measure - target_occupancy_measure).item(), episode)
-        print(torch.sum(occupancy_measure - target_occupancy_measure).item())
+        writer.add_scalar("constraint violation", torch.sum(0.5 * torch.norm(occupancy_measure - target_occupancy_measure)**2).item(), episode)
+        writer.add_scalar("learning rate",lr_theta,episode)
+        print(torch.sum(0.5 * torch.norm(occupancy_measure - target_occupancy_measure)**2).item())
         # print("reward : " + str(torch.sum(reward_buffer[episode]).item()))
         # print("final step : " + str(final_step))
         # print("constraint violation : " + str(torch.sum(occupancy_measure - target_occupancy_measure).item()))
