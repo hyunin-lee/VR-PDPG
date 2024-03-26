@@ -13,24 +13,24 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 torch.autograd.set_detect_anomaly(True)
-
+torch.manual_seed(0)
 import gym
 import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max_episode", type=int, default=1000, help = "iteration number")
-    parser.add_argument("--max_step", type=int, default = 50, help = "trajectory length")
-    parser.add_argument("--gamma", type=float, default=0.9, help="gamma")
-    parser.add_argument("--init_lr_theta", type=float, default=0.1, help="initial learning rate for theta")
-    parser.add_argument("--init_lr_mu", type=float, default=0.01, help="initial learning rate for mu")
-    parser.add_argument("--alpha", type=float, default=0.01, help="alpha")
+    parser.add_argument("--max_episode", type=int, default=2000, help = "iteration number")
+    parser.add_argument("--max_step", type=int, default = 16, help = "trajectory length")
+    parser.add_argument("--gamma", type=float, default=0.85, help="gamma")
+    parser.add_argument("--init_lr_theta", type=float, default=1, help="initial learning rate for theta")
+    parser.add_argument("--init_lr_mu", type=float, default=0.1, help="initial learning rate for mu")
+    parser.add_argument("--alpha", type=float, default=0.1, help="alpha")
     parser.add_argument("--init_mu", type=float, default=1, help="initial mu")
     parser.add_argument("--C0_mu", type=float, default=10, help="alpha")
     parser.add_argument("--d_0", type=float, default=2, help="violance allowance")
     args = parser.parse_args()
     return args
-
+    # 2000, 50, 0.9, 1, 0.1, 0.1, 1, 10, 2
 
 def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer) :
     max_episode = args.max_episode
@@ -56,7 +56,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
     action_buffer = torch.zeros(max_episode,max_step)
     reward_buffer = torch.zeros(max_episode,max_step)
     term_buffer = torch.zeros(max_episode,max_step)
-    current_state_list = []
+
+    lastest_success_state_list, latest_success_episode = None, None
     ## define variables
     target_occupancy_measure = get_target_occupancy_measure(num_states,num_actions,gamma)
 
@@ -65,7 +66,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
         # alpha = alpha * 1/(episode+1)
         ## make agent refrence and agent same network before starting episode.
         set_flat_params_to(agent_reference, get_flat_params_from(agent))
-
+        current_state_list = []
         if episode == 0  :
             # line 2
             obs, infos = env.reset()
@@ -134,6 +135,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
         else :
             # line 9
             obs, infos = env.reset()
+            current_state_list.append(obs)
             final_step = 0
             for step in range(max_step) :
                 with torch.no_grad():
@@ -141,6 +143,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
                     action, _ = agent.get_action(obs_input)
                     action_input = action.item()
                     next_obs, reward, termimate, _, infos = env.step(action_input)
+                    current_state_list.append(next_obs)
                     ## change reward ##
                     if termimate :
                         reward = 100
@@ -155,6 +158,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
                     obs = next_obs
                     final_step = step
                     if termimate :
+                        lastest_success_state_list = current_state_list
+                        latest_success_episode = episode
                         # show_trajecgory(current_state_list,episode)
                         break
 
@@ -231,6 +236,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
         # print("final step : " + str(final_step))
         # print("constraint violation : " + str(torch.sum(occupancy_measure - target_occupancy_measure).item()))
         writer.flush()
+
+    show_trajecgory(lastest_success_state_list,latest_success_episode)
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
 
