@@ -9,7 +9,7 @@ from torch.distributions.categorical import Categorical
 import matplotlib.pyplot as plt
 
 torch.autograd.set_detect_anomaly(True)
-
+torch.manual_seed(0)
 import gym
 
 import numpy as np
@@ -102,7 +102,7 @@ def state_to_xy(state) :
     y = state % 8
     return y,x
 
-def show_trajecgory(index_list,episode):
+def show_trajecgory(index_list,episode,save_foldername):
     fig, ax = plt.subplots()
     # Create an 8x8 grid
     ax.set_xlim(0, 8)
@@ -119,6 +119,7 @@ def show_trajecgory(index_list,episode):
         ax.add_patch(rect)
     plt.title(episode)
     plt.gca().invert_yaxis()  # Invert Y axis to match grid indexing
+    plt.savefig(save_foldername + "/trajectory.png")
     plt.show()
 
 
@@ -128,7 +129,8 @@ def get_target_occupancy_measure(num_states,num_actions,gamma):
     # 8 9 10 ...14
     # ...
     # the action looks like
-    target_sa = [(0,1),(8,2),(9,1),(17,2),(18,1),(26,2),(27,1),(35,2),(36,1),(44,2),(45,1),(53,2),(54,1),(62,2)]
+    # target_sa = [(0,1),(8,2),(9,1),(17,2),(18,1),(26,2),(27,1),(35,2),(36,1),(44,2),(45,1),(53,2),(54,1),(62,2)]
+    target_sa = [(0,2),(1,2),(2,2),(3,2),(4,2),(5,2),(6,2),(7,1),(15,1),(23,1),(31,1),(39,1),(47,1),(55,1)]
     with torch.no_grad():
         state_action_input = change_state_action_dim(torch.tensor(target_sa[-1][0]),
                                                      torch.tensor(target_sa[-1][1]), num_actions)
@@ -187,3 +189,11 @@ def calculate_w(obs_buffer, action_buffer, episode,previous_policy, policy, num_
     ratio = selected_previous_prob / (selected_prob + epsilon)
     ratio = ratio.detach()
     return torch.prod(ratio)
+
+## for mountain car ##
+
+def discretization(x,low_x,high_x,n_discrete) :
+    if x == high_x :
+        return n_discrete -1
+    else :
+        return int( (x-low_x) * (n_discrete / (high_x-low_x)))
