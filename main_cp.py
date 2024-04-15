@@ -34,7 +34,6 @@ def parse_args():
     return args
     # 2000, 50, 0.9, 1, 0.1, 0.1, 1, 10, 2
 
-
 def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer,save_foldername) :
     max_episode = args.max_episode
     max_step = args.max_step
@@ -96,6 +95,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
                     obs = next_obs
                     final_step = step
                     if termimate :
+                        show_trajecgory(current_state_list,episode)
                         break
             # line 3
             occupancy_measure = get_occupancy_measure(obs_buffer, action_buffer, episode, final_step, num_states, num_actions,gamma)
@@ -244,18 +244,12 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 if __name__ == '__main__':
 
     args = parse_args()
-    desc = [
-        "SFFFFFFF",
-        "FFFFFFFF",
-        "FFFFFFFF",
-        "FFFFFFFF",
-        "FFFFFFFF",
-        "FFFFFFFF",
-        "FFFFFFFF",
-        "FFFFFFFG",
-    ]
-    env = gym.make('FrozenLake-v1', desc=desc, map_name="8x8", is_slippery=False)
-    num_states = env.observation_space.n
+    env = gym.make("MountainCar-v0")
+    states_high = env.observation_space.high
+    states_low = env.observation_space.low
+
+    n_discretize = 50
+    num_states = n_discretize ** len(states_high)
     num_actions = env.action_space.n
 
     agent = Agent(num_states, num_actions)
@@ -266,7 +260,8 @@ if __name__ == '__main__':
     folder_name = "maxEp__" + str(args.max_episode) + '__maxS__'+str(args.max_step) + '__gm__' + str(args.gamma) + \
                    '__lrTh0__' + str(args.init_lr_theta) + '__lrMu0__' + str(args.init_lr_mu) + '__a__' + str(args.alpha) + \
                   '__mu0__' + str(args.init_mu) +"__d_0__" + str(args.d_0)
-    writer = SummaryWriter('./runs2/' + folder_name)
+
+    writer = SummaryWriter('./runs_mc/' + folder_name)
 
     VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer,'./runs2/' + folder_name)
     writer.close()
