@@ -11,6 +11,7 @@ from tqdm import tqdm
 import datetime
 from torch.utils.tensorboard import SummaryWriter
 
+import pickle
 
 torch.autograd.set_detect_anomaly(True)
 torch.manual_seed(0)
@@ -20,21 +21,20 @@ import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max_episode", type=int, default=4300, help = "iteration number")
-    parser.add_argument("--max_step", type=int, default = 14, help = "trajectory length")
-    parser.add_argument("--gamma", type=float, default=0.9, help="gamma")
+    parser.add_argument("--max_episode", type=int, default=5000, help = "iteration number")
+    parser.add_argument("--max_step", type=int, default = 50, help = "trajectory length")
+    parser.add_argument("--gamma", type=float, default=0.8, help="gamma")
     parser.add_argument("--init_lr_theta", type=float, default=1, help="initial learning rate for theta")
     parser.add_argument("--init_lr_mu", type=float, default=0.1, help="initial learning rate for mu")
-    parser.add_argument("--alpha", type=float, default=0.1
-                        , help="alpha")
+    parser.add_argument("--alpha", type=float, default=0.1, help="alpha")
     parser.add_argument("--init_mu", type=float, default=1, help="initial mu")
     parser.add_argument("--C0_mu", type=float, default=10, help="alpha")
-    parser.add_argument("--d_0", type=float, default=0.0008, help="violance allowance")
+    parser.add_argument("--d_0", type=float, default=0.001, help="violance allowance")
     args = parser.parse_args()
     return args
     # 2000, 50, 0.9, 1, 0.1, 0.1, 1, 10, 2
 
-def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer,save_foldername) :
+def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer,discretization_info,save_foldername,sa_oracle) :
     max_episode = args.max_episode
     max_step = args.max_step
     gamma = args.gamma
@@ -44,6 +44,9 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
     init_mu = args.init_mu
     C0_mu = args.C0_mu
     d_0 = args.d_0
+    states_low = discretization_info[0]
+    states_high = discretization_info[1]
+    n_discretize = discretization_info[2]
 
     # define optimizer.zero_grad()
     optimizer_agent = torch.optim.Adam(agent.parameters(), lr=init_lr_theta)
@@ -61,7 +64,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 
     lastest_success_state_list, latest_success_episode = None, None
     ## define variables
-    target_occupancy_measure = get_target_occupancy_measure(num_states,num_actions,gamma)
+    # target_occupancy_measure = get_target_occupancy_measure(num_states,num_actions,gamma)
+    target_occupancy_measure = get_target_occupancy_measure_mountaincar(num_states, num_actions, gamma, sa_oracle, states_low, states_high, n_discretize)
 
     for episode in tqdm(range(max_episode)) :
         # make alpha descrease as $1/t$
@@ -72,6 +76,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
         if episode == 0  :
             # line 2
             obs, infos = env.reset()
+            obs = discretization(obs,states_low,states_high,n_discretize)
             current_state_list.append(obs)
             final_step = 0
             for step in range(max_step) :
@@ -80,12 +85,13 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
                     action, _ = agent.get_action(obs_input)
                     action_input = action.item()
                     next_obs, reward, termimate, _, infos = env.step(action_input)
+                    next_obs = discretization(next_obs, states_low, states_high, n_discretize)
                     current_state_list.append(next_obs)
                     ## change reward ##
-                    if termimate :
-                        reward = 100
-                    else :
-                        reward = - 0.2
+                    # if termimate :
+                    #     reward = 100
+                    # else :
+                    #     reward = - 0.2
                     ####################
                     ## save observation, rewards
                     obs_buffer[episode, step] = obs
@@ -95,10 +101,10 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
                     obs = next_obs
                     final_step = step
                     if termimate :
-                        show_trajecgory(current_state_list,episode)
+                        # show_trajecgory(current_state_list,episode)
                         break
             # line 3
-            occupancy_measure = get_occupancy_measure(obs_buffer, action_buffer, episode, final_step, num_states, num_actions,gamma)
+            occupancy_measure = get_occupancy_measure(obs_buffer, action_buffer, episode, final_step, num_states, num_actions, gamma)
 
             # line 4
             r_f = reward_buffer[episode]
@@ -137,6 +143,7 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
         else :
             # line 9
             obs, infos = env.reset()
+            obs = discretization(obs, states_low, states_high, n_discretize) # add discretization
             current_state_list.append(obs)
             final_step = 0
             for step in range(max_step) :
@@ -145,12 +152,13 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
                     action, _ = agent.get_action(obs_input)
                     action_input = action.item()
                     next_obs, reward, termimate, _, infos = env.step(action_input)
+                    next_obs = discretization(next_obs, states_low, states_high, n_discretize)  # add discretization
                     current_state_list.append(next_obs)
                     ## change reward ##
-                    if termimate :
-                        reward = 100
-                    else :
-                        reward = - 0.2
+                    # if termimate :
+                    #     reward = 100
+                    # else :
+                    #     reward = - 0.2
                     ####################
                     ## save observation, rewards
                     obs_buffer[episode, step] = obs
@@ -239,16 +247,18 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
         # print("constraint violation : " + str(torch.sum(occupancy_measure - target_occupancy_measure).item()))
         writer.flush()
 
-    show_trajecgory(lastest_success_state_list,latest_success_episode,save_foldername)
+    # show_trajecgory(lastest_success_state_list,latest_success_episode,save_foldername)
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-
+    with open("./mountaincar_sa_oracle.pickle", "rb") as fp:  # Unpickling
+        sa_oracle= pickle.load(fp)
     args = parse_args()
     env = gym.make("MountainCar-v0")
     states_high = env.observation_space.high
     states_low = env.observation_space.low
 
     n_discretize = 50
+    discretization_info = [states_low,states_high,n_discretize]
     num_states = n_discretize ** len(states_high)
     num_actions = env.action_space.n
 
@@ -261,8 +271,8 @@ if __name__ == '__main__':
                    '__lrTh0__' + str(args.init_lr_theta) + '__lrMu0__' + str(args.init_lr_mu) + '__a__' + str(args.alpha) + \
                   '__mu0__' + str(args.init_mu) +"__d_0__" + str(args.d_0)
 
-    writer = SummaryWriter('./runs_mc/' + folder_name)
+    writer = SummaryWriter('./runs_mountaincar/' + folder_name)
 
-    VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer,'./runs2/' + folder_name)
+    VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer,discretization_info,'./runs_mountaincar/' + folder_name,sa_oracle)
     writer.close()
 

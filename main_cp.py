@@ -11,6 +11,8 @@ from tqdm import tqdm
 import datetime
 from torch.utils.tensorboard import SummaryWriter
 
+import pickle
+
 
 torch.autograd.set_detect_anomaly(True)
 torch.manual_seed(0)
@@ -242,11 +244,15 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
     show_trajecgory(lastest_success_state_list,latest_success_episode,save_foldername)
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-
+    with open("./cartpole_sa_oracle.pickle", "rb") as fp:  # Unpickling
+        sa_oracle= pickle.load(fp)
     args = parse_args()
-    env = gym.make("MountainCar-v0")
+    args.max_step = len(sa_oracle) # change max_step
+    env = gym.make("CartPole-v1")
     states_high = env.observation_space.high
+    states_high[1], states_high[3] = 3.14, 3.14
     states_low = env.observation_space.low
+    states_low[1], states_low[3] = -3.14, -3.14
 
     n_discretize = 50
     num_states = n_discretize ** len(states_high)
@@ -261,8 +267,10 @@ if __name__ == '__main__':
                    '__lrTh0__' + str(args.init_lr_theta) + '__lrMu0__' + str(args.init_lr_mu) + '__a__' + str(args.alpha) + \
                   '__mu0__' + str(args.init_mu) +"__d_0__" + str(args.d_0)
 
-    writer = SummaryWriter('./runs_mc/' + folder_name)
+    folder_name2 = './runs_cartpole/' + folder_name
 
-    VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions,writer,'./runs2/' + folder_name)
+    writer = SummaryWriter(folder_name2)
+
+    VR_PDPG(env, agent, previous_agent, agent_reference, args, num_states, num_actions, writer, folder_name2)
     writer.close()
 

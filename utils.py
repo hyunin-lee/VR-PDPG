@@ -143,6 +143,30 @@ def get_target_occupancy_measure(num_states,num_actions,gamma):
                                           num_classes=num_states * num_actions) + gamma * occupancy_measure  # compute line 4
     return occupancy_measure
 
+def get_target_occupancy_measure_mountaincar(num_states,num_actions,gamma, sa_oracle, states_low, states_high, n_discretize):
+    # the (8,8) grid looks like
+    # 0 1 2 ... 7
+    # 8 9 10 ...14
+    # ...
+    # the action looks like
+    target_sa = []
+    for l in sa_oracle :
+        s,a = l[0], l[1]
+        discretize_s = discretization(s,states_low,states_high,n_discretize)
+        discretize_a = a
+        target_sa.append((discretize_s,discretize_a))
+    # target_sa = [(0,2),(1,2),(2,2),(3,2),(4,2),(5,2),(6,2),(7,1),(15,1),(23,1),(31,1),(39,1),(47,1),(55,1)]
+    with torch.no_grad():
+        state_action_input = change_state_action_dim(torch.tensor(target_sa[-1][0]),
+                                                     torch.tensor(target_sa[-1][1]), num_actions)
+        occupancy_measure = F.one_hot(state_action_input.type(torch.long), num_classes=num_states * num_actions)
+
+        for t in reversed(range(len(target_sa)-1)):
+
+            state_action_input = change_state_action_dim(torch.tensor(target_sa[t][0]), torch.tensor(target_sa[t][1]), num_actions)
+            occupancy_measure = F.one_hot(state_action_input.type(torch.long),
+                                          num_classes=num_states * num_actions) + gamma * occupancy_measure  # compute line 4
+    return occupancy_measure
 
 def get_occupancy_measure(obs_buffer, action_buffer, episode,final_step, num_states,num_actions,gamma) :
     with torch.no_grad():
@@ -193,7 +217,11 @@ def calculate_w(obs_buffer, action_buffer, episode,previous_policy, policy, num_
 ## for mountain car ##
 
 def discretization(x,low_x,high_x,n_discrete) :
-    if x == high_x :
-        return n_discrete -1
-    else :
-        return int( (x-low_x) * (n_discrete / (high_x-low_x)))
+    discrete_list = []
+    for i in range(len(x)):
+        if x[i] == high_x[i] :
+            discrete_list.append(n_discrete -1)
+        else :
+            discrete_list.append(int( (x[i]-low_x[i]) * (n_discrete / (high_x[i]-low_x[i]))))
+
+    return discrete_list[0] * n_discrete + discrete_list[1]

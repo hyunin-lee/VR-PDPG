@@ -74,7 +74,7 @@ import torch.nn.functional as F
 
 from tqdm import tqdm
 
-env = gym.make("CartPole-v1")
+env = gym.make("MountainCarContinuous-v0")
 
 # set up matplotlib
 is_ipython = 'inline' in matplotlib.get_backend()
@@ -401,7 +401,7 @@ def optimize_model():
 if torch.cuda.is_available():
     num_episodes = 600
 else:
-    num_episodes = 600
+    num_episodes = 1000
 
 last_state_action_success = None
 last_episode_return = 0
@@ -415,7 +415,7 @@ for i_episode in tqdm(range(num_episodes)):
     for t in count():
         action = select_action(state)
         ### hyunin add ###
-        episode_state_action_pair.append([state,action])
+        episode_state_action_pair.append([state.tolist()[0],action.tolist()[0]])
         ##################
         observation, reward, terminated, truncated, _ = env.step(action.item())
         reward = torch.tensor([reward], device=device)
@@ -446,15 +446,16 @@ for i_episode in tqdm(range(num_episodes)):
             target_net_state_dict[key] = policy_net_state_dict[key]*TAU + target_net_state_dict[key]*(1-TAU)
         target_net.load_state_dict(target_net_state_dict)
 
-        if done :
-            episode_durations.append(t + 1)
-            # plot_durations()
+        if terminated :
             if last_episode_return < episode_return :
                 last_episode_return = episode_return
                 last_state_action_success = episode_state_action_pair
                 print("================================================================")
                 print("Episode: "+ str(i_episode) + " / Return : " + str(episode_return))
                 print(" Reward update!")
+        if done :
+            episode_durations.append(t + 1)
+            # plot_durations()
             break
 
 import pickle
