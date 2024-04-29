@@ -129,8 +129,9 @@ def get_target_occupancy_measure(num_states,num_actions,gamma):
     # 8 9 10 ...14
     # ...
     # the action looks like
-    # target_sa = [(0,1),(8,2),(9,1),(17,2),(18,1),(26,2),(27,1),(35,2),(36,1),(44,2),(45,1),(53,2),(54,1),(62,2)]
-    target_sa = [(0,2),(1,2),(2,2),(3,2),(4,2),(5,2),(6,2),(7,1),(15,1),(23,1),(31,1),(39,1),(47,1),(55,1)]
+    # target_sa = [(0,2),(1,2),(2,2),(3,2),(4,2),(5,2),(6,2),(7,1),(15,1),(23,1),(31,1),(39,1),(47,1),(55,1)] #traj1
+    target_sa = [(0,1),(8,2),(9,1),(17,2),(18,1),(26,2),(27,1),(35,2),(36,1),(44,2),(45,1),(53,2),(54,1),(62,2)] #traj2
+
     with torch.no_grad():
         state_action_input = change_state_action_dim(torch.tensor(target_sa[-1][0]),
                                                      torch.tensor(target_sa[-1][1]), num_actions)

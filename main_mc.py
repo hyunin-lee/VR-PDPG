@@ -21,15 +21,15 @@ import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max_episode", type=int, default=5000, help = "iteration number")
-    parser.add_argument("--max_step", type=int, default = 50, help = "trajectory length")
-    parser.add_argument("--gamma", type=float, default=0.8, help="gamma")
+    parser.add_argument("--max_episode", type=int, default=6000, help = "iteration number")
+    parser.add_argument("--max_step", type=int, default = 85, help = "trajectory length")
+    parser.add_argument("--gamma", type=float, default=0.82, help="gamma")
     parser.add_argument("--init_lr_theta", type=float, default=1, help="initial learning rate for theta")
     parser.add_argument("--init_lr_mu", type=float, default=0.1, help="initial learning rate for mu")
     parser.add_argument("--alpha", type=float, default=0.1, help="alpha")
     parser.add_argument("--init_mu", type=float, default=1, help="initial mu")
     parser.add_argument("--C0_mu", type=float, default=10, help="alpha")
-    parser.add_argument("--d_0", type=float, default=0.001, help="violance allowance")
+    parser.add_argument("--d_0", type=float, default=0.0001, help="violance allowance")
     args = parser.parse_args()
     return args
     # 2000, 50, 0.9, 1, 0.1, 0.1, 1, 10, 2
@@ -121,7 +121,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             ## line 6
             d_L = d_f + mu * d_g
             lr_theta = init_lr_theta / torch.norm(d_L)
-
+            if lr_theta > 0.1 :
+                lr_theta = 0.1
             optimizer_agent.zero_grad()
             set_flat_grads_to(agent,d_L)
             for g in optimizer_agent.param_groups:
@@ -214,7 +215,8 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
             # line 13
             d_L = d_f + mu * d_g
             lr_theta = init_lr_theta / torch.norm(d_L)
-
+            if lr_theta > 0.1 :
+                lr_theta = 0.1
             optimizer_agent.zero_grad()
             set_flat_grads_to(agent, d_L)
             for g in optimizer_agent.param_groups:
@@ -254,10 +256,14 @@ if __name__ == '__main__':
         sa_oracle= pickle.load(fp)
     args = parse_args()
     env = gym.make("MountainCar-v0")
+    ## change the moiuncar cat environment ##
+    env.env.force = 0.1
+    #########################################
+
     states_high = env.observation_space.high
     states_low = env.observation_space.low
 
-    n_discretize = 50
+    n_discretize = 100
     discretization_info = [states_low,states_high,n_discretize]
     num_states = n_discretize ** len(states_high)
     num_actions = env.action_space.n
