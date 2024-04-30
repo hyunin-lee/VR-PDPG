@@ -123,10 +123,34 @@ def show_trajecgory(index_list,episode,save_foldername):
     plt.show()
 
 
+def get_target_occupancy_measure_20x20(num_states,num_actions,gamma):
+    # the (20,20) grid looks like
+    # 0 1 2 ... 19
+    # 20 9 10 ...27
+    # ...
+    # the action looks like
+    target_sa = [(0,1),(20,1),(40,1),(60,1),(80,2),(81,2),(82,2),(83,2),(84,2),(85,2),(86,1),(106,1),(126,2),(127,1),
+                 (147,2),(148,1),(168,1),(188,1),(208,2),(209,2),(210,1),(230,1),(250,1),(270,1),(290,2),(291,2),
+                 (292,2),(293,2),(294,1),(314,2),(315,1),(335,1),(355,2),(356,1),(376,2),(377,2),(378,1),(398,2)] #traj1
+    # target_sa = [(0,1),(8,2),(9,1),(17,2),(18,1),(26,2),(27,1),(35,2),(36,1),(44,2),(45,1),(53,2),(54,1),(62,2)] #traj2
+
+    with torch.no_grad():
+        state_action_input = change_state_action_dim(torch.tensor(target_sa[-1][0]),
+                                                     torch.tensor(target_sa[-1][1]), num_actions)
+        occupancy_measure = F.one_hot(state_action_input.type(torch.long), num_classes=num_states * num_actions)
+
+        for t in reversed(range(len(target_sa)-1)):
+
+            state_action_input = change_state_action_dim(torch.tensor(target_sa[t][0]), torch.tensor(target_sa[t][1]), num_actions)
+            occupancy_measure = F.one_hot(state_action_input.type(torch.long),
+                                          num_classes=num_states * num_actions) + gamma * occupancy_measure  # compute line 4
+    return occupancy_measure
+
+
 def get_target_occupancy_measure(num_states,num_actions,gamma):
     # the (8,8) grid looks like
     # 0 1 2 ... 7
-    # 8 9 10 ...14
+    # 8 9 10 ...15
     # ...
     # the action looks like
     # target_sa = [(0,2),(1,2),(2,2),(3,2),(4,2),(5,2),(6,2),(7,1),(15,1),(23,1),(31,1),(39,1),(47,1),(55,1)] #traj1
