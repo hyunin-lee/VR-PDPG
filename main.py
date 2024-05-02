@@ -20,7 +20,7 @@ import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--max_episode", type=int, default=10000, help = "iteration number")
+    parser.add_argument("--max_episode", type=int, default=15000, help = "iteration number")
     parser.add_argument("--max_step", type=int, default = 14, help = "trajectory length")
     parser.add_argument("--gamma", type=float, default=0.9, help="gamma")
     parser.add_argument("--init_lr_theta", type=float, default=0.5, help="initial learning rate for theta")
@@ -255,7 +255,9 @@ def VR_PDPG(env,agent,previous_agent,agent_reference,args,num_states,num_actions
 
         violation_list.append(torch.sum(0.5 * torch.norm(occupancy_measure - target_occupancy_measure)**2).item())
         return_list.append(torch.sum(reward_buffer[episode]).item())
-
+        if save_result and episode % == 0 : 
+            np.save('./'+save_foldername + '/returns.npy',return_list)
+            np.save('./'+save_foldername + '/violations.npy', violation_list)
         # print(torch.sum(0.5 * torch.norm(occupancy_measure - target_occupancy_measure)**2).item())
         # print("reward : " + str(torch.sum(reward_buffer[episode]).item()))
         # print("final step : " + str(final_step))
