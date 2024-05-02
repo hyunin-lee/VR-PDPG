@@ -306,7 +306,7 @@ if __name__ == '__main__':
                    '__lrTh0__' + str(args.init_lr_theta) + '__lrMu0__' + str(args.init_lr_mu) + '__a__' + str(args.alpha) + \
                   '__mu0__' + str(args.init_mu) +"__d_0__" + str(args.d_0)
 
-    folderName = './runs_gridworld20x20_traj1_2/' + folder_name
+    folderName = './runs_gridworld20x20_traj2/' + folder_name
 
     writer = SummaryWriter(folderName)
 
