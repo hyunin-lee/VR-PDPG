@@ -139,3 +139,5 @@ plt.ylim([-0.1,5.5])
 plt.grid(True)
 plt.savefig('./gridworld8x8_violations.pdf')
 plt.show()
+
+plt.close()
